@@ -55,7 +55,7 @@ export default function SplashCursor({
   const animationFrameId = useRef<number | null>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
+    const canvas = canvasRef.current as HTMLCanvasElement;
     if (!canvas) return;
 
     let isActive = true;
@@ -177,14 +177,14 @@ export default function SplashCursor({
       fragmentShaderSource: string;
       programs: any[];
       activeProgram: any;
-      uniforms: any[];
+      uniforms: any;
 
       constructor(vertexShader: any, fragmentShaderSource: string) {
         this.vertexShader = vertexShader;
         this.fragmentShaderSource = fragmentShaderSource;
         this.programs = [];
         this.activeProgram = null;
-        this.uniforms = [];
+        this.uniforms = {};
       }
       setKeywords(keywords: string[]) {
         let hash = 0;
@@ -227,11 +227,11 @@ export default function SplashCursor({
     }
 
     function getUniforms(program: any) {
-      let uniforms: any[] = [];
+      let uniforms: any = {};
       let uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
       for (let i = 0; i < uniformCount; i++) {
         let uniformName = gl.getActiveUniform(program, i).name;
-        uniforms[uniformName as any] = gl.getUniformLocation(program, uniformName);
+        uniforms[uniformName] = gl.getUniformLocation(program, uniformName);
       }
       return uniforms;
     }
