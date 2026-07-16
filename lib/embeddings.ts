@@ -1,33 +1,27 @@
-import { InferenceClient } from "@huggingface/inference";
+import { Pinecone } from "@pinecone-database/pinecone";
 
-export const EMBED_MODEL = "BAAI/bge-large-en-v1.5"; // 1024-dim
+export const EMBED_MODEL = "multilingual-e5-large"; // 1024-dim
 
-let hf: InferenceClient | null = null;
+let pc: Pinecone | null = null;
 
 function getClient() {
-  if (!hf) {
-    hf = new InferenceClient(process.env.HF_TOKEN!);
+  if (!pc) {
+    pc = new Pinecone({ apiKey: process.env.PINECONE_API_KEY! });
   }
-  return hf;
+  return pc;
 }
 
 export async function embedText(text: string): Promise<number[]> {
-  const result = await getClient().featureExtraction({
+  const client = getClient();
+  const response = await client.inference.embed({
     model: EMBED_MODEL,
-    inputs: text,
+    inputs: [text],
+    parameters: { inputType: "passage", truncate: "END" },
   });
 
-  // This model returns one pooled vector already. If you swap to a model that
-  // returns token-level output (a nested array), mean-pool it yourself here —
-  // don't assume the shape stays flat when you change models.
-  if (Array.isArray(result[0])) {
-    const matrix = result as number[][];
-    const dim = matrix[0].length;
-    const pooled = new Array(dim).fill(0);
-    for (const row of matrix)
-      for (let i = 0; i < dim; i++) pooled[i] += row[i];
-    return pooled.map((v) => v / matrix.length);
+  if (!response.data || !response.data[0] || !response.data[0].values) {
+    throw new Error("Failed to generate embedding from Pinecone");
   }
 
-  return result as number[];
+  return response.data[0].values;
 }
